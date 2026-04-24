@@ -8,6 +8,7 @@ import com.suyash.quiz_leaderboard.model.QuizMessagesResponse;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,11 +29,7 @@ public class LeaderboardService {
     }
 
     public LeaderboardResult buildLeaderboard(String regNo) throws InterruptedException {
-        Set<String> processedEvents = new HashSet<>();
-        Map<String, Long> participantScores = new HashMap<>();
-
-        int receivedEvents = 0;
-        int duplicateEvents = 0;
+        List<QuizEvent> allEvents = new ArrayList<>();
 
         for (int poll = 0; poll < TOTAL_POLLS; poll++) {
             QuizMessagesResponse response = quizApiClient.getMessages(regNo, poll);
@@ -45,19 +42,35 @@ public class LeaderboardService {
 
             for (QuizEvent event : response.events()) {
                 validateEvent(event, poll);
-                receivedEvents++;
-
-                String eventKey = event.roundId() + "|" + event.participant();
-
-                if (processedEvents.add(eventKey)) {
-                    participantScores.merge(event.participant(), (long) event.score(), Long::sum);
-                } else {
-                    duplicateEvents++;
-                }
             }
+
+            allEvents.addAll(response.events());
 
             if (poll < TOTAL_POLLS - 1) {
                 Thread.sleep(POLL_DELAY_MS);
+            }
+        }
+
+        return buildLeaderboardFromEvents(allEvents);
+    }
+
+    LeaderboardResult buildLeaderboardFromEvents(List<QuizEvent> events) {
+        Set<String> processedEvents = new HashSet<>();
+        Map<String, Long> participantScores = new HashMap<>();
+
+        int receivedEvents = 0;
+        int duplicateEvents = 0;
+
+        for (QuizEvent event : events) {
+            validateEvent(event, -1);
+            receivedEvents++;
+
+            String eventKey = event.roundId() + "|" + event.participant();
+
+            if (processedEvents.add(eventKey)) {
+                participantScores.merge(event.participant(), (long) event.score(), Long::sum);
+            } else {
+                duplicateEvents++;
             }
         }
 
