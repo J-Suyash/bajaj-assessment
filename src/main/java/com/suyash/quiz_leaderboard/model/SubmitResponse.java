@@ -1,10 +1,10 @@
 package com.suyash.quiz_leaderboard.model;
 
 public record SubmitResponse(
-        boolean isCorrect,
-        boolean isIdempotent,
-        long submittedTotal,
-        long expectedTotal,
+        Boolean isCorrect,
+        Boolean isIdempotent,
+        Long submittedTotal,
+        Long expectedTotal,
         String message
 ) {
 }
